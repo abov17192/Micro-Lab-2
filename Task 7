@@ -1,0 +1,57 @@
+#include <avr/io.h>
+
+#define TARGET_PRIMES 2000
+
+void setup() {
+  /* ---------- PB5 (LED) OUTPUT ---------- */
+  PORTB |= (1 << PB5);   // HIGH = start
+
+  DDRB |= (1 << PB5);
+  PORTB &= ~(1 << PB5);   // LOW = start marker
+
+  // TIMER1 
+  TCCR1A = 0;
+  TCCR1B = (1 << CS10);   // No prescaler
+  TCNT1  = 0;
+
+  /* ---------- PRIME COUNT ---------- */
+  uint16_t count = 1;    // prime 2
+  uint16_t n = 3;
+
+  while (1) {
+    uint16_t d = 3;
+    uint8_t isPrime = 1;
+
+    while (1) {
+      uint16_t prod = d * d;
+      if (prod > n)
+        break;
+
+      if ((n - d) == 0) {
+        isPrime = 0;
+        break;
+      }
+
+      d += 2;b
+    }
+
+    if (isPrime) {
+      count++;
+      PINB = (1 << PB5);    // toggle LED
+
+      if (count == TARGET_PRIMES)
+        break;
+    }
+
+    n += 2;
+  }
+
+  /* ---------- END MARKER ---------- */
+  PORTB |= (1 << PB5);   // HIGH = finished
+  PORTB &= ~(1 << PB5);  // LOW = end
+
+}
+
+void loop() {
+  // Halt
+}
