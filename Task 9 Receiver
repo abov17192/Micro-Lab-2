@@ -1,0 +1,54 @@
+uint16_t K[4] = {0x1918, 0x1110, 0x0908, 0x0100}; 
+
+void speck_round_inverse(uint16_t &x, uint16_t &y, uint16_t k) {
+    y ^= x;
+    y = ( (y >> 2) | (y << 14) ); 
+    x ^= k;
+    x -= y;                      
+    x = ( (x << 7) | (x >> 9) ); 
+}
+
+void decrypt_speck(uint16_t &x, uint16_t &y) {
+    uint16_t b = K[1], c = K[2], d = K[3], a = K[0];
+    uint16_t li[22], keys[22];
+
+    // Pre-calculate key schedule
+    keys[0] = a;
+    uint16_t l_schedule[] = {b, c, d};
+    for (int i = 0; i < 21; i++) {
+        speck_round(l_schedule[i % 3], a, (uint16_t)i);
+        keys[i+1] = a;
+    }
+
+    // Run rounds in reverse
+    for (int i = 21; i >= 0; i--) {
+        speck_round_inverse(x, y, keys[i]);
+    }
+}
+
+// Helper for encryption needed during key schedule pre-calc
+void speck_round(uint16_t &x, uint16_t &y, uint16_t k) {
+    x = ( (x >> 7) | (x << 9) ); x += y; x ^= k;
+    y = ( (y << 2) | (y >> 14) ); y ^= x;
+}
+
+void setup() {
+    Serial.begin(9600);
+    Serial.println("System Ready. Listening for ciphertext...");
+}
+
+void loop() {
+    if (Serial.available() >= 4) {
+        // Reconstruct the two 16-bit words from 4 bytes
+        uint16_t ct_x = Serial.read() | (Serial.read() << 8);
+        uint16_t ct_y = Serial.read() | (Serial.read() << 8);
+
+        Serial.print("Ciphertext: "); Serial.print(ct_x, HEX); Serial.print(ct_y, HEX);
+
+        // Decrypt
+        decrypt_speck(ct_x, ct_y);
+
+        Serial.print(" -> Decrypted Counter: ");
+        Serial.println(ct_x); // Should show 0, 1, 2...
+    }
+}
