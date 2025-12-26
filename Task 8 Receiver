@@ -1,0 +1,42 @@
+// --- RECEIVER CODE ---
+
+// Secret Key (Must match the Transmitter)
+const byte SECRET_KEY = 0xAB; 
+
+// Inverse Cipher Decryption Function
+byte decrypt(byte ciphertext) {
+  // Step 1: Reverse the XOR constant (Confusion)
+  byte state = ciphertext ^ 0x55;
+  
+  // Step 2: Reverse the Bit Rotation - Rotate Right by 3 bits
+  // (Original Left Shift 3 becomes Right Shift 3)
+  state = (state >> 3) | (state << 5);
+  
+  // Step 3: Reverse the XOR with Keyb
+  byte plaintext = state ^ SECRET_KEY;
+  
+  return plaintext;
+}
+
+void setup() {
+  Serial.begin(9600); // Initialize UART
+  Serial.println("Waiting for encrypted data...");
+}
+
+void loop() {
+  if (Serial.available() > 0) {
+    // Read the incoming ciphertext byte
+    byte receivedByte = Serial.read();
+    
+    // Decrypt the byte to recover original counter
+    byte decryptedValue = decrypt(receivedByte);
+    
+    // Display results to Serial Monitor
+    Serial.print("Encrypted: 0x");
+    if(receivedByte < 16) Serial.print("0"); // Formatting
+    Serial.print(receivedByte, HEX);
+    
+    Serial.print(" | Decrypted: ");
+    Serial.println(decryptedValue);
+  }
+}
