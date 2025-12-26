@@ -1,0 +1,42 @@
+#include <Arduino.h>
+
+uint8_t data[3] = {85, 170, 255};
+
+void SPI_MasterInit() {
+  // MOSI (PB3), SCK (PB5), SS (PB2) as output
+  DDRB |= (1 << PB3) | (1 << PB5) | (1 << PB2);
+
+  // MISO as input
+  DDRB &= ~(1 << PB4);
+
+  // SS HIGH (inactive)
+  PORTB |= (1 << PB2);
+
+  // Enable SPI, Master mode, Clock = fosc/16
+  SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR0);
+}
+
+void SPI_MasterTransmit(uint8_t data) {
+  // SS LOW → start transmission
+  PORTB &= ~(1 << PB2);
+
+  // Load data
+  SPDR = data;
+
+  // Wait until transmission complete
+  while (!(SPSR & (1 << SPIF)));
+
+  // SS HIGH → end transmission
+  PORTB |= (1 << PB2);
+}
+
+void setup() {
+  SPI_MasterInit();
+}
+
+void loop() {
+  for (int i = 0; i < 3; i++) {
+    SPI_MasterTransmit(data[i]);
+    delay(1000);  // 1 second delay
+  }
+}
