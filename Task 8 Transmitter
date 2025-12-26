@@ -1,7 +1,7 @@
-// --- TRANSMITTER CODE ---
+
 
 // Secret Key (Must be shared with Receiver)
-const byte SECRET_KEY = ; // Example 8-bit key (10101011)
+const byte SECRET_KEY = 0x5B ; 
 
 // Simple 8-bit Block Cipher Encryption Function
 byte encrypt(byte plaintext) {
