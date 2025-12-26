@@ -1,0 +1,130 @@
+#include <avr/io.h>
+#include <avr/interrupt.h>
+
+// ----------------------------------
+// Pin connections for 7-segment
+// ----------------------------------
+// D6  (PD6)  -> Segment A
+// D7  (PD7)  -> Segment B
+// D8  (PB0)  -> Segment F
+// D9  (PB1)  -> Segment G
+// D10 (PB2)  -> Segment E
+// D11 (PB3)  -> Segment D
+// D12 (PB4)  -> Segment C
+//
+// Push button is connected to D2 (PD2)
+// Using INT0 interrupt pin
+//
+// Display is common cathode
+// HIGH turns segment ON
+// LOW turns segment OFF
+// ----------------------------------
+
+volatile uint8_t digit = 0;bb
+volatile uint8_t running = 1;
+
+// Segment pattern for numbers 0 to 9
+// Order: A B C D E F G
+// 1 = ON, 0 = OFF
+const uint8_t digitMap[10][7] = {
+  {1,1,1,1,1,1,0}, // 0
+  {0,1,1,0,0,0,0}, // 1
+  {1,1,0,1,1,0,1}, // 2
+  {1,1,1,1,0,0,1}, // 3
+  {0,1,1,0,0,1,1}, // 4
+  {1,0,1,1,0,1,1}, // 5
+  {1,0,1,1,1,1,1}, // 6
+  {1,1,1,0,0,0,0}, // 7
+  {1,1,1,1,1,1,1}, // 8
+  {1,1,1,1,0,1,1}  // 9
+};
+
+// ----------------------------------
+// Function to show a digit on display
+// ----------------------------------
+void displayDigit(uint8_t n)
+{
+  // Turn OFF all segments first
+  PORTD &= ~((1 << PD6) | (1 << PD7));
+  PORTB &= ~((1 << PB0) | (1 << PB1) | (1 << PB2) | (1 << PB3) | (1 << PB4));
+
+  // Turn ON segments based on digitMap
+  if (digitMap[n][0]) PORTD |= (1 << PD6); // A
+  if (digitMap[n][1]) PORTD |= (1 << PD7); // B
+  if (digitMap[n][2]) PORTB |= (1 << PB4); // C
+  if (digitMap[n][3]) PORTB |= (1 << PB3); // D
+  if (digitMap[n][4]) PORTB |= (1 << PB2); // E
+  if (digitMap[n][5]) PORTB |= (1 << PB0); // F
+  if (digitMap[n][6]) PORTB |= (1 << PB1); // G
+}
+
+// ----------------------------------
+// Timer1 interrupt
+// Runs every 0.5 seconds
+// ----------------------------------
+ISR(TIMER1_COMPA_vect)
+{
+  if (running)
+  {
+    digit++;            // Increase digit
+    if (digit > 9)      // Reset after 9
+      digit = 0;
+    displayDigit(digit);
+  }
+}
+
+// ----------------------------------
+// Button interrupt (pause / resume)
+// ----------------------------------
+ISR(INT0_vect)
+{
+  // Small delay for button debounce
+  for (volatile uint32_t i = 0; i < 50000; i++);
+
+  running = !running;   // Toggle state
+
+  if (!running)
+    TIMSK1 &= ~(1 << OCIE1A); // Disable timer interrupt
+  else
+    TIMSK1 |= (1 << OCIE1A);  // Enable timer interrupt
+}
+
+// ----------------------------------
+// Main program
+// ----------------------------------
+int main(void)
+{
+  // Set segment pins as output
+  DDRD |= (1 << PD6) | (1 << PD7);
+  DDRB |= (1 << PB0) | (1 << PB1) | (1 << PB2)
+        | (1 << PB3) | (1 << PB4);
+
+  // Set button pin as input
+  DDRD &= ~(1 << PD2);
+  PORTD |= (1 << PD2);  // Enable pull-up resistor
+
+  // Timer1 setup for 0.5 second delay
+  // Clock = 16 MHz
+  // Prescaler = 256
+  // OCR1A = 31249
+  TCCR1B = (1 << WGM12) | (1 << CS12);
+  OCR1A  = 31249;
+  TIMSK1 = (1 << OCIE1A);
+
+  // External interrupt INT0 setup
+  // Trigger on falling edge
+  EICRA = (1 << ISC01);
+  EIMSK = (1 << INT0);
+
+  // Show 0 at start
+  displayDigit(0);
+
+  // Enable global interrupts
+  sei();
+
+  // Infinite loop
+  while (1)
+  {
+    // All work is done in interrupts
+  }
+}
