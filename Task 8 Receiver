@@ -1,7 +1,6 @@
-// --- RECEIVER CODE ---
 
 // Secret Key (Must match the Transmitter)
-const byte SECRET_KEY = 0xAB; 
+const byte SECRET_KEY = 0x5B; 
 
 // Inverse Cipher Decryption Function
 byte decrypt(byte ciphertext) {
