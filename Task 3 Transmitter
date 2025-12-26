@@ -1,0 +1,34 @@
+#define F_CPU 16000000UL
+#include <avr/io.h>
+#include <util/delay.h>
+
+void UART_init(void) {
+    UBRR0H = 0;
+    UBRR0L = 103;  // 9600 baud
+    UCSR0B = (1 << TXEN0) | (1 << RXEN0);  // Enable TX and RX
+    UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);  // 8-bit data
+}
+
+char UART_receive(void) {
+    while (!(UCSR0A & (1 << RXC0)));  // Wait for data
+    return UDR0;
+}
+
+void UART_send(char data) {
+    while (!(UCSR0A & (1 << UDRE0)));  // Wait for transmit buffer
+    UDR0 = data;
+}
+
+int main(void) {
+    UART_init();
+
+    while(1) {
+        char c = UART_receive();  // Wait for user input from Serial Monitor
+
+        // Only accept '1','2','3','4'
+        if(c == '1' || c == '2' || c == '3' || c == '4') {
+            UART_send(c);  // Send to Arduino A
+        }
+        // Ignore other characters (like '\n' or '\r')
+    }
+}
