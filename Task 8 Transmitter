@@ -1,0 +1,39 @@
+// --- TRANSMITTER CODE ---
+
+// Secret Key (Must be shared with Receiver)
+const byte SECRET_KEY = ; // Example 8-bit key (10101011)
+
+// Simple 8-bit Block Cipher Encryption Function
+byte encrypt(byte plaintext) {
+  // Step 1: XOR with Key
+  byte state = plaintext ^ SECRET_KEY;
+  
+  // Step 2: Bit Rotation (Permutation) - Rotate Left by 3 bits
+  // This moves bits around so the position matters
+  state = (state << 3) | (state >> 5);
+  
+  // Step 3: XOR with a constant (Confusion)
+  // 0x55 is 01010101, a pattern of alternating bits
+  byte ciphertext = state ^ 0x55;
+  
+  return ciphertext;
+}
+
+void setup() {
+  Serial.begin(9600); // Initialize UART communication
+}
+
+void loop() {
+  // Count from 0 to 255
+  for (int counter = 0; counter <= 255; counter++) {
+    
+    // Encrypt the counter value
+    byte encryptedValue = encrypt((byte)counter);
+    
+    // Send only the encrypted byte over UART
+    Serial.write(encryptedValue);
+    
+    // Wait 0.1 seconds as required
+    delay(100); 
+  }
+}
