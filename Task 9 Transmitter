@@ -1,0 +1,40 @@
+uint16_t K[4] = {0x1918, 0x1110, 0x0908, 0x0100}; 
+
+void speck_round(uint16_t &x, uint16_t &y, uint16_t k) {
+    x = ( (x >> 7) | (x << 9) ); 
+    x += y;                      
+    x ^= k;                      
+    y = ( (y << 2) | (y >> 14) ); 
+    y ^= x;                      
+}
+
+void encrypt_speck(uint16_t &x, uint16_t &y) {
+    uint16_t b = K[1], c = K[2], d = K[3], a = K[0]; 
+    uint16_t li[] = {b, c, d};
+    for (int i = 0; i < 22; i++) {
+        speck_round(x, y, a);
+        // Update key schedule for next round
+        speck_round(li[i % 3], a, (uint16_t)i); 
+    }
+}
+
+void setup() {
+    Serial.begin(9600);
+}
+
+void loop() {
+    for (int counter = 0; counter <= 255; counter++) {
+        uint16_t pt_x = (uint16_t)counter; 
+        uint16_t pt_y = 0x0000; 
+        
+        encrypt_speck(pt_x, pt_y);
+        
+        // Send as 4 individual bytes
+        Serial.write(lowByte(pt_x));
+        Serial.write(highByte(pt_x));
+        Serial.write(lowByte(pt_y));
+        Serial.write(highByte(pt_y));
+        
+        delay(100); 
+    }
+}
