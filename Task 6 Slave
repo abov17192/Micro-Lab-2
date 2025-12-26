@@ -1,0 +1,34 @@
+#include <Wire.h>
+
+#define SLAVE_ADDR 0x08
+const int buttonPin = 2;
+const int ledPin = 8;
+
+volatile byte lastReceived = 0x00;
+
+void setup() {
+  pinMode(buttonPin, INPUT_PULLUP);
+  pinMode(ledPin, OUTPUT);
+
+  Wire.begin(SLAVE_ADDR); // Join I2C bus as slave
+  Wire.onReceive(receiveEvent);
+  Wire.onRequest(requestEvent);
+}
+
+void loop() {
+  // LED reacts to data received from master
+  digitalWrite(ledPin, lastReceived ? HIGH : LOW);
+}
+
+// Called when master sends data
+void receiveEvent(int bytes) {
+  if (Wire.available()) {
+    lastReceived = Wire.read();
+  }
+}
+
+// Called when master requests data
+void requestEvent() {
+  byte buttonState = (digitalRead(buttonPin) == LOW) ? 0x01 : 0x00;
+  Wire.write(buttonState);
+}
