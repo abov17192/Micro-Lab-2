@@ -1,0 +1,82 @@
+const uint8_t cipher[] = {
+  87, 26, 72, 13, 67, 95, 89, 23,
+  72, 22, 73, 11, 87, 30, 73
+};
+
+const uint8_t cipherLen = sizeof(cipher);
+
+void setup() {
+  Serial.begin(9600);
+  while (!Serial);
+
+  unsigned long startTime = millis();
+  int found = 0;
+
+  // Step 1: brute-force Key1 FIRST (odd positions)
+  for (int key1 = 0; key1 < 256; key1++) {
+
+    bool key1Valid = true;
+
+    // Early rejection using ONLY odd bytes
+    for (int i = 1; i < cipherLen; i += 2) {
+      char p = cipher[i] ^ key1;
+      if (!((p >= 'a' && p <= 'z') || p == ' ')) {
+        key1Valid = false;
+        break;
+      }
+    }
+
+    if (!key1Valid) continue;
+
+    // Step 2: brute-force Key0 only if Key1 passed
+    for (int key0 = 0; key0 < 256; key0++) {
+
+      char plaintext[cipherLen + 1];
+      bool valid = true;
+      int spaceCount = 0;
+
+      for (int i = 0; i < cipherLen; i++) {
+        uint8_t key = (i % 2 == 0) ? key0 : key1;
+        char p = cipher[i] ^ key;
+
+        if (!((p >= 'a' && p <= 'z') || p == ' ')) {
+          valid = false;
+          break;
+        }
+
+        if (p == ' ') spaceCount++;
+        plaintext[i] = p;
+      }
+
+      plaintext[cipherLen] = '\0';
+
+      // Require exactly two lowercase words
+      if (valid && spaceCount == 1) {
+
+        Serial.print("Key0 = 0x");
+        if (key0 < 16) Serial.print("0");
+        Serial.print(key0, HEX);
+
+        Serial.print("  Key1 = 0x");
+        if (key1 < 16) Serial.print("0");
+        Serial.print(key1, HEX);
+
+        Serial.print("  ->  ");
+        Serial.println(plaintext);
+
+        found++;
+      }
+    }
+  }
+
+  unsigned long elapsed = millis() - startTime;
+
+  Serial.println();
+  Serial.print("Combinations found: ");
+  Serial.println(found);
+  Serial.print("Time(ms): ");
+  Serial.println(elapsed);
+}
+
+void loop() {
+}
