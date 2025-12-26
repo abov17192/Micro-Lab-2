@@ -1,0 +1,33 @@
+#define F_CPU 16000000UL
+#include <avr/io.h>
+#include <util/delay.h>
+
+void UART_init(void) {
+    UBRR0H = 0;
+    UBRR0L = 103;                 // 9600 baud
+    UCSR0B = (1 << RXEN0);        // Enable receiver
+    UCSR0C = (1 << UCSZ01) | (1 << UCSZ00); // 8-bit data
+}
+
+char UART_receive(void) {bbb
+    while (!(UCSR0A & (1 << RXC0)));  // Wait until data is received
+    return UDR0;                      // Return received data
+}
+
+void LEDs_off(void) {
+    PORTB &= ~((1 << PB0) | (1 << PB1) | (1 << PB2));  // Turn off LEDs
+}
+
+int main(void) {
+    DDRB |= (1 << PB0) | (1 << PB1) | (1 << PB2);  // Set pins D8, D9, D10 as output
+    UART_init();  // Initialize UART
+
+    while (1) {
+        char c = UART_receive();  // Receive data from Arduino B
+        LEDs_off();  // Turn off all LEDs
+
+        if (c == '1') PORTB |= (1 << PB0);  // Turn on LED1 if '1' is received
+        if (c == '2') PORTB |= (1 << PB1);  // Turn on LED2 if '2' is received
+        if (c == '3') PORTB |= (1 << PB2);  // Turn on LED3 if '3' is received
+    }
+}
