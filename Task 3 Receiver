@@ -1,0 +1,59 @@
+#define F_CPU 16000000UL
+#include <avr/io.h>
+#include <util/delay.h>
+#include <avr/eeprom.h>
+
+#define MAX_SEQUENCE 100
+
+void UART_init(void) {
+    UBRR0H = 0;
+    UBRR0L = 103;  // 9600 baud
+    UCSR0B = (1 << RXEN0);  // Enable receiver
+    UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);  // 8-bit data
+}
+
+char UART_receive(void) {
+    while (!(UCSR0A & (1 << RXC0)));  // Wait until data received
+    return UDR0;
+}
+
+void LEDs_off(void) {
+    PORTB &= ~((1 << PB0) | (1 << PB1) | (1 << PB2));
+}
+
+void LED_on(char c) {
+    LEDs_off();
+    if(c == '1') PORTB |= (1 << PB0);
+    if(c == '2') PORTB |= (1 << PB1);
+    if(c == '3') PORTB |= (1 << PB2);
+}
+
+int main(void) {
+    DDRB |= (1 << PB0) | (1 << PB1) | (1 << PB2);  // LEDs as output
+    UART_init();
+
+    uint8_t index = 0;  // EEPROM write index
+
+    while(1) {
+        char c = UART_receive();  // Receive byte
+
+        if(c >= '1' && c <= '3') {
+            // store in EEPROM, **do not blink**
+            if(index < MAX_SEQUENCE) {
+                eeprom_write_byte((uint8_t*)index, c);
+                index++;
+            }
+        }
+        else if(c == '4') {
+            // Playback stored sequence
+            for(uint8_t i = 0; i < index; i++) {
+                char val = eeprom_read_byte((uint8_t*)i);
+                LED_on(val);
+                _delay_ms(500);
+                LEDs_off();
+                _delay_ms(200);
+            }
+            index = 0;  // Reset for next sequence
+        }
+    }
+}
